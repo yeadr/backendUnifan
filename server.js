@@ -95,7 +95,10 @@ async function createTransporter() {
   const accessToken = await getToken();
 
   return nodemailer.createTransport({
-    service: "gmail",
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true,
+    family: 4,
     auth: {
       type: "OAuth2",
       user: "noreplyunifandam1@gmail.com",
