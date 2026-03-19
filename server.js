@@ -10,6 +10,7 @@ const crypto = require("node:crypto");
 require('dotenv').config();
 const nodemailer = require("nodemailer")
 const google = require("googleapis")
+const PORT = process.env.PORT || 3000;
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
@@ -23,7 +24,7 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 
-app.listen(23000, () => console.log(`listening on http://localhost:${23000}`));
+app.listen(PORT, () => console.log(`listening on http://localhost:${PORT}`));
 
 const usuarioSchema = z.object({
   nom: z.string().refine(campo => campo.trim().length > 0, {
