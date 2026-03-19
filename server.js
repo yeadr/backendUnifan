@@ -142,7 +142,7 @@ async function comprovacio(request){
 async function limpiarSessionID(docId) {
   try {
     const db = admin.firestore();
-    const docRef = db.collection("usuaris").doc(docId);
+    const docRef = db.collection("unifan").doc(docId);
 
     await docRef.update({
       sessionID: []
