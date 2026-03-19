@@ -6,7 +6,7 @@ const admin = require('firebase-admin');
 const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
 const crypto = require("node:crypto");
-const nodemailer = require("nodemailer")
+import { Resend } from 'resend';
 const google = require("googleapis")
 const PORT = process.env.PORT || 3000;
 const FRONTEND_URL = process.env.FRONTEND_URL;
@@ -199,8 +199,8 @@ app.post("/registrar", async (req, res) => {
 
     console.log("2. transporter creado");
 
-    await transporter.sendMail({
-    from: "Soporte unifan",
+    await resend.emails.send({
+    from: 'onboarding@resend.dev',
     to: req.body.correu,
     subject: "Confirmar email",
     html: `
@@ -211,7 +211,7 @@ app.post("/registrar", async (req, res) => {
       <p>No compartas esto a nadie.</p>
     `
     });
-
+    
     console.log("3. mail enviado");
     res.status(201).json({ mensaje: "Un enlace de verificacion ha sido mandado a su correo" });
     return;
@@ -524,20 +524,17 @@ app.post("/modificarcorreu", async (req, res) => {
         sessions: admin.firestore.FieldValue.arrayUnion(token),
     }, {merge: true})
 
-    const transporter = await createTransporter();
-    await transporter.sendMail({
-    from: "Soporte unifan",
-    to: req.body.noucorreu,
-    subject: "Confirmar cambio de email",
+  await resend.emails.send({
+    from: 'onboarding@resend.dev',
+    to: req.body.correu,
+    subject: 'Confirmar email',
     html: `
       <h2>Confirmar registro</h2>
-      <p>Haz clic en el siguiente enlace para confirmar el cambio de email:</p>
+      <p>Haz clic en el siguiente enlace:</p>
       <a href="${confirmarLink}">${confirmarLink}</a>
-      <p>Este enlace expirará en 30 minutos.</p>
-      <p>No compartas esto a nadie.</p>
     `
-    });
-
+  });
+    
     res.status(201).json({ mensaje: "Un enlace de verificacion ha sido mandado a su correo" });
     return;
   } catch (error) {
@@ -649,8 +646,8 @@ app.post("/mandarlinkolvidarpasswd", async (req, res) => {
   await db.collection("unifan").doc("temporaltokens").set({sessions: admin.firestore.FieldValue.arrayUnion(temporalToken)}, 
   {merge: true})
 
-  const transporter = await createTransporter();
-  await transporter.sendMail({
+  await resend.emails.send({
+  from: 'onboarding@resend.dev',
   from: "Soporte unifan",
   to: req.body.correu,
   subject: "Cambio de contraseña",
@@ -661,7 +658,7 @@ app.post("/mandarlinkolvidarpasswd", async (req, res) => {
     <p>Este enlace expirará en 30 minutos.</p>
     <p>No compartas esto a nadie.</p>
   `
-  });
+});
 
   res.status(200).send({mensaje: "Se ha enviado un enlace a tu correo"})
 
