@@ -3,7 +3,6 @@ const cors = require('cors');
 const z = require('zod')
 const app = express();
 const admin = require('firebase-admin');
-const serviceAccount = require('./clave.json');
 const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
 const crypto = require("node:crypto");
@@ -13,7 +12,11 @@ const google = require("googleapis")
 const PORT = process.env.PORT || 3000;
 
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
+  credential: admin.credential.cert({
+    projectId: process.env.FIREBASE_PROJECT_ID,
+    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+    privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
+  })
 });
 
 const db = admin.firestore();
