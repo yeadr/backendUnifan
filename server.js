@@ -10,6 +10,7 @@ const nodemailer = require("nodemailer")
 const google = require("googleapis")
 const PORT = process.env.PORT || 3000;
 
+console.log(process.env)
 admin.initializeApp({
   credential: admin.credential.cert({
     projectId: process.env.FIREBASE_PROJECT_ID,
