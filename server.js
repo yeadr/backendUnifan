@@ -187,7 +187,12 @@ app.post("/registrar", async (req, res) => {
         sessions: admin.firestore.FieldValue.arrayUnion(token),
     }, {merge: true})
 
+    console.log("1. antes transporter");
+
     const transporter = await createTransporter();
+
+    console.log("2. transporter creado");
+
     await transporter.sendMail({
     from: "Soporte unifan",
     to: req.body.correu,
@@ -201,6 +206,7 @@ app.post("/registrar", async (req, res) => {
     `
     });
 
+    console.log("3. mail enviado");
     res.status(201).json({ mensaje: "Un enlace de verificacion ha sido mandado a su correo" });
     return;
   } catch (error) {
