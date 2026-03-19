@@ -9,6 +9,9 @@ const crypto = require("node:crypto");
 const nodemailer = require("nodemailer")
 const google = require("googleapis")
 const PORT = process.env.PORT || 3000;
+const FRONTEND_URL = process.env.FRONTEND_URL;
+const bcrypt = require('bcrypt');
+
 
 admin.initializeApp({
   credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_CREDENTIALS))
@@ -16,7 +19,7 @@ admin.initializeApp({
 
 const db = admin.firestore();
 app.use(cors({
-  origin: 'http://localhost:4200',
+  origin: process.env.FRONTEND_URL,
   credentials: true
 }));
 app.use(express.json());
@@ -84,10 +87,10 @@ oAuth2Client.setCredentials({
   refresh_token: process.env.REFRESHTOKEN
 });
 
-async function getToken() {
-  return await oAuth2Client.getAccessToken();
-}
-const transporter = nodemailer.createTransport({
+async function createTransporter() {
+  const accessToken = await getToken();
+
+  return nodemailer.createTransport({
     service: "gmail",
     auth: {
       type: "OAuth2",
@@ -95,9 +98,10 @@ const transporter = nodemailer.createTransport({
       clientId: process.env.CLIENTID,
       clientSecret: process.env.CLIENTSECRET,
       refreshToken: process.env.REFRESHTOKEN,
-      accessToken: getToken()
+      accessToken: accessToken.token
     }
-});
+  });
+}
 
 async function comprovacio(request){
   try {
@@ -174,11 +178,12 @@ app.post("/registrar", async (req, res) => {
     const sessionID = crypto.randomBytes(4).readUInt32BE(0).toString()
   
     const token = jwt.sign({data: result.data, sessionID: sessionID}, SECRET_KEY, {expiresIn: "30m"})
-    const confirmarLink = `http://localhost:4200/confirmarusuari?token=${token}`
+    const confirmarLink = `${FRONTEND_URL}/confirmarusuari?token=${token}`
     await db.collection("unifan").doc("registresessions").set({
         sessions: admin.firestore.FieldValue.arrayUnion(token),
     }, {merge: true})
 
+    const transporter = await createTransporter();
     await transporter.sendMail({
     from: "Soporte unifan",
     to: req.body.correu,
@@ -221,11 +226,13 @@ app.post("/ferregistre", async (req, res) => {
       sessions: admin.firestore.FieldValue.arrayRemove(req.body.token)
   });
 
+  const hashedpasswd = await bcrypt.hash(passwd, 10);
+    
   await user.set({
       nom: nom,
       cognom: cognom,
       correu: correu,
-      passwd: passwd,
+      passwd: hashedpasswd,
       direccio: direccio,
       telefon: telefon,
       cesta: cesta
@@ -262,8 +269,9 @@ app.post("/iniciarsessio", async (req, res) => {
     } 
 
     const userData = userSnap.data();
+    const match = await bcrypt.compare(passwd, userData.passwd);
 
-    if(passwd === userData.passwd){    
+    if(match){    
 
     const { nom, cognom, correu, passwd, direccio, telefon, cesta } = userData;
     
@@ -288,8 +296,8 @@ app.post("/iniciarsessio", async (req, res) => {
 
     res.cookie('token', token, {
           httpOnly: true,
-          secure: false,
-          sameSite: 'lax',
+          secure: true,
+          sameSite: 'none',
           maxAge: 1000 * 60 * 60 * 24 * 7
     })
 
@@ -327,9 +335,9 @@ app.get('/loggedin', async (req, res) => {
 
     res.cookie('token', comprovar.token, {
           httpOnly: true,
-          secure: false,
-          sameSite: 'lax',
-          maxAge: 1000 * 60 * 60 * 24 * 7
+          secure: true,
+          sameSite: 'none',
+  maxAge: 1000 * 60 * 60 * 24 * 7
     })
 
     res.status(200).json({ token: comprovar.token });
@@ -379,8 +387,8 @@ app.post("/cerrarsesion", async (req, res) => {
 
     res.cookie('token', token, {
           httpOnly: true,
-          secure: false,
-          sameSite: 'lax',
+          secure: true,
+          sameSite: 'none',
           maxAge: 0
     })
 
@@ -448,8 +456,8 @@ app.patch("/modificarcampo", async (req, res) => {
 
     res.cookie('token', newtoken, {
           httpOnly: true,
-          secure: false,
-          sameSite: 'lax',
+          secure: true,
+          sameSite: 'none',
           maxAge: 1000 * 60 * 60 * 24 * 7
     })
 
@@ -495,11 +503,12 @@ app.post("/modificarcorreu", async (req, res) => {
     const sessionID = crypto.randomBytes(4).readUInt32BE(0).toString()
   
     const token = jwt.sign({noucorreu: req.body.noucorreu, antigcorreu: antigcorreu, sessionID: sessionID}, SECRET_KEY, {expiresIn: "30m"})
-    const confirmarLink = `http://localhost:4200/confirmarcambiocorreo?token=${token}`
+    const confirmarLink = `${FRONTEND_URL}/confirmarcambiocorreo?token=${token}`
     await db.collection("unifan").doc("cambiarcorreosessions").set({
         sessions: admin.firestore.FieldValue.arrayUnion(token),
     }, {merge: true})
 
+    const transporter = await createTransporter();
     await transporter.sendMail({
     from: "Soporte unifan",
     to: req.body.noucorreu,
@@ -592,7 +601,8 @@ app.post("/cambiarpasswd", async (req, res) => {
       return res.status(comprovar.code).json({message: comprovar.message})
     }
 
-    await cambiarContraseña(comprovar.dades.correu, req.body.nuevaPasswd)
+    const hashedpasswd = await bcrypt.hash(req.body.nuevaPasswd, 10);
+    await cambiarContraseña(comprovar.dades.correu, hashedpasswd)
     
     res.status(200).send({mensaje: "Contraseña cambiada correctamente"})
 
@@ -618,11 +628,12 @@ app.post("/mandarlinkolvidarpasswd", async (req, res) => {
 
   const temporalToken = jwt.sign(tokenJSON, SECRET_KEY, {expiresIn: "30m"})
 
-  const resetLink = `http://localhost:4200/fernovapasswd?token=${temporalToken}`
+  const resetLink = `${FRONTEND_URL}/fernovapasswd?token=${temporalToken}`
 
   await db.collection("unifan").doc("temporaltokens").set({sessions: admin.firestore.FieldValue.arrayUnion(temporalToken)}, 
   {merge: true})
 
+  const transporter = await createTransporter();
   await transporter.sendMail({
   from: "Soporte unifan",
   to: req.body.correu,
@@ -674,8 +685,9 @@ app.post("/actualitzarpasswd", async (req, res) => {
 
     const token = jwt.verify(req.body.token, SECRET_KEY)
 
-    await cambiarContraseña(token.correu, req.body.nuevaPasswd)
-
+    const hashedpasswd = await bcrypt.hash(req.body.nuevaPasswd, 10);
+    await cambiarContraseña(token.correu, hashedpasswd)
+    
     await db.collection("unifan").doc("temporaltokens").update({
       sessions: admin.firestore.FieldValue.arrayRemove(req.body.token)
     });
