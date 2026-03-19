@@ -10,10 +10,7 @@ import { Resend } from 'resend';
 const PORT = process.env.PORT || 3000;
 const FRONTEND_URL = process.env.FRONTEND_URL;
 const bcrypt = require('bcrypt');
-const dns = require('dns');
 
-
-dns.setDefaultResultOrder('ipv4first');
 
 admin.initializeApp({
   credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_CREDENTIALS))
@@ -78,6 +75,7 @@ const usuarioSchema = z.object({
 });
 
 const SECRET_KEY = process.env.SECRET_KEY; 
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 async function comprovacio(request){
   try {
