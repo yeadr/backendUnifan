@@ -157,7 +157,7 @@ app.post("/registrar", async (req, res) => {
         sessions: admin.firestore.FieldValue.arrayUnion(token),
     }, {merge: true})
 
-    await resend.emails.send({
+    const em = await resend.emails.send({
     from: 'onboarding@resend.dev',
     to: req.body.correu,
     subject: "Confirmar email",
@@ -169,6 +169,7 @@ app.post("/registrar", async (req, res) => {
       <p>No compartas esto a nadie.</p>
     `
     });
+    console.log("RESEND RESPONSE:", em);
     
     res.status(201).json({ mensaje: "Un enlace de verificacion ha sido mandado a su correo" });
     return;
