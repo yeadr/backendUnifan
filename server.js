@@ -6,7 +6,7 @@ const admin = require('firebase-admin');
 const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
 const crypto = require("node:crypto");
-import { Resend } from 'resend';
+const ResendPack = require("resend")
 const PORT = process.env.PORT || 3000;
 const FRONTEND_URL = process.env.FRONTEND_URL;
 const bcrypt = require('bcrypt');
@@ -75,7 +75,7 @@ const usuarioSchema = z.object({
 });
 
 const SECRET_KEY = process.env.SECRET_KEY; 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = new ResendPack(process.env.RESEND_API_KEY);
 
 async function comprovacio(request){
   try {
