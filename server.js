@@ -6,7 +6,6 @@ const admin = require('firebase-admin');
 const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
 const crypto = require("node:crypto");
-require('dotenv').config();
 const nodemailer = require("nodemailer")
 const google = require("googleapis")
 const PORT = process.env.PORT || 3000;
