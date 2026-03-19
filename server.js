@@ -7,7 +7,6 @@ const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
 const crypto = require("node:crypto");
 import { Resend } from 'resend';
-const google = require("googleapis")
 const PORT = process.env.PORT || 3000;
 const FRONTEND_URL = process.env.FRONTEND_URL;
 const bcrypt = require('bcrypt');
@@ -79,39 +78,6 @@ const usuarioSchema = z.object({
 });
 
 const SECRET_KEY = process.env.SECRET_KEY; 
-
-const oAuth2Client = new google.Auth.OAuth2Client(
-  process.env.CLIENTID,
-  process.env.CLIENTSECRET,
-  "https://developers.google.com/oauthplayground",
-); 
-
-oAuth2Client.setCredentials({
-  refresh_token: process.env.REFRESHTOKEN
-});
-
-async function getToken() {
-  return await oAuth2Client.getAccessToken();
-}
-
-async function createTransporter() {
-  const accessToken = await getToken();
-
-  return nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 465,
-    secure: true,
-    family: 4,
-    auth: {
-      type: "OAuth2",
-      user: "noreplyunifandam1@gmail.com",
-      clientId: process.env.CLIENTID,
-      clientSecret: process.env.CLIENTSECRET,
-      refreshToken: process.env.REFRESHTOKEN,
-      accessToken: accessToken.token
-    }
-  });
-}
 
 async function comprovacio(request){
   try {
@@ -193,12 +159,6 @@ app.post("/registrar", async (req, res) => {
         sessions: admin.firestore.FieldValue.arrayUnion(token),
     }, {merge: true})
 
-    console.log("1. antes transporter");
-
-    const transporter = await createTransporter();
-
-    console.log("2. transporter creado");
-
     await resend.emails.send({
     from: 'onboarding@resend.dev',
     to: req.body.correu,
@@ -212,7 +172,6 @@ app.post("/registrar", async (req, res) => {
     `
     });
     
-    console.log("3. mail enviado");
     res.status(201).json({ mensaje: "Un enlace de verificacion ha sido mandado a su correo" });
     return;
   } catch (error) {
