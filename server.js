@@ -87,6 +87,10 @@ oAuth2Client.setCredentials({
   refresh_token: process.env.REFRESHTOKEN
 });
 
+async function getToken() {
+  return await oAuth2Client.getAccessToken();
+}
+
 async function createTransporter() {
   const accessToken = await getToken();
 
