@@ -6,7 +6,7 @@ const admin = require('firebase-admin');
 const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
 const crypto = require("node:crypto");
-const { Resend } = require("resend")
+const nodemailer = require("nodemailer");
 const PORT = process.env.PORT || 3000;
 const FRONTEND_URL = process.env.FRONTEND_URL;
 const bcrypt = require('bcrypt');
@@ -69,13 +69,20 @@ const usuarioSchema = z.object({
 });
 
 
-  const usuarioIniciarSesion = z.object({
+const usuarioIniciarSesion = z.object({
   correu: z.email({error: "Email con formato incorrecto, sigue el formato text@text.text"}),
   passwd: z.string({error: "Has puesto algo invalido como contraseña."})
 });
 
 const SECRET_KEY = process.env.SECRET_KEY; 
-const resend = new Resend(process.env.RESEND_API_KEY);
+
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.GMAIL_USER,
+    pass: process.env.GMAIL_PASS
+  }
+});
 
 async function comprovacio(request){
   try {
@@ -157,8 +164,8 @@ app.post("/registrar", async (req, res) => {
         sessions: admin.firestore.FieldValue.arrayUnion(token),
     }, {merge: true})
 
-    const em = await resend.emails.send({
-    from: 'onboarding@resend.dev',
+    await transporter.sendMail({
+    from: process.env.GMAIL_USER,
     to: req.body.correu,
     subject: "Confirmar email",
     html: `
@@ -169,7 +176,6 @@ app.post("/registrar", async (req, res) => {
       <p>No compartas esto a nadie.</p>
     `
     });
-    console.log("RESEND RESPONSE:", em);
     
     res.status(201).json({ mensaje: "Un enlace de verificacion ha sido mandado a su correo" });
     return;
@@ -482,8 +488,8 @@ app.post("/modificarcorreu", async (req, res) => {
         sessions: admin.firestore.FieldValue.arrayUnion(token),
     }, {merge: true})
 
-  await resend.emails.send({
-    from: 'onboarding@resend.dev',
+    await transporter.sendMail({
+    from: process.env.GMAIL_USER,
     to: req.body.correu,
     subject: 'Confirmar email',
     html: `
@@ -491,7 +497,7 @@ app.post("/modificarcorreu", async (req, res) => {
       <p>Haz clic en el siguiente enlace:</p>
       <a href="${confirmarLink}">${confirmarLink}</a>
     `
-  });
+    });    
     
     res.status(201).json({ mensaje: "Un enlace de verificacion ha sido mandado a su correo" });
     return;
@@ -604,9 +610,8 @@ app.post("/mandarlinkolvidarpasswd", async (req, res) => {
   await db.collection("unifan").doc("temporaltokens").set({sessions: admin.firestore.FieldValue.arrayUnion(temporalToken)}, 
   {merge: true})
 
-  await resend.emails.send({
-  from: 'onboarding@resend.dev',
-  from: "Soporte unifan",
+  await transporter.sendMail({
+  from: `"Soporte unifan" <${process.env.GMAIL_USER}>`,
   to: req.body.correu,
   subject: "Cambio de contraseña",
   html: `
@@ -616,7 +621,7 @@ app.post("/mandarlinkolvidarpasswd", async (req, res) => {
     <p>Este enlace expirará en 30 minutos.</p>
     <p>No compartas esto a nadie.</p>
   `
-});
+  });
 
   res.status(200).send({mensaje: "Se ha enviado un enlace a tu correo"})
 
