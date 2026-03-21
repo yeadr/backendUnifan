@@ -77,7 +77,10 @@ const usuarioIniciarSesion = z.object({
 const SECRET_KEY = process.env.SECRET_KEY; 
 
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  service: "gmail", 
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true,
   auth: {
     user: process.env.GMAIL_USER,
     pass: process.env.GMAIL_PASS
