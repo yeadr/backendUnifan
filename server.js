@@ -77,16 +77,18 @@ const usuarioIniciarSesion = z.object({
 const SECRET_KEY = process.env.SECRET_KEY; 
 
 const transporter = nodemailer.createTransport({
-  service: "gmail", 
   host: "smtp.gmail.com",
-  port: 465,
-  secure: true,
+  port: 587,
+  secure: false,
+  requireTLS: true,
   auth: {
     user: process.env.GMAIL_USER,
     pass: process.env.GMAIL_PASS
-  }
+  },
+  connectionTimeout: 10000,
+  greetingTimeout: 10000,
+  socketTimeout: 10000
 });
-
 async function comprovacio(request){
   try {
   const token = request.cookies.token || null;
